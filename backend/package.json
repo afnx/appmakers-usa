@@ -1,0 +1,30 @@
+{
+    "name": "appmakers-usa-backend",
+    "version": "1.0.1",
+    "description": "AppMakers USA Node.js Backend Server",
+    "type": "module",
+    "main": "src/server.js",
+    "author": "Ali Fuat Numanoglu",
+    "license": "MIT",
+    "dependencies": {
+        "cookie-parser": "^1.4.7",
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.2",
+        "express": "^5.1.0",
+        "ws": "^8.18.3"
+    },
+    "devDependencies": {
+        "eslint": "^9.36.0",
+        "jest": "^30.1.3",
+        "nodemon": "^3.0.1",
+        "prettier": "^3.0.0"
+    },
+    "scripts": {
+        "start": "node src/server.js",
+        "dev": "nodemon src/server.js",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix"
+    }
+}
