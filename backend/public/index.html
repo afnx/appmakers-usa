@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>AppMakers USA Backend Project</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        html,
+        body {
+            height: 100vh;
+        }
+
+        body {
+            background-image: linear-gradient(to right, #9cdcec, #ac9cec, #d49cec);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 60px auto;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 6px 32px rgba(60, 72, 88, 0.12);
+            padding: 36px 32px 28px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        h2 {
+            text-align: center;
+            color: #2563eb;
+            margin-bottom: 28px;
+            letter-spacing: 1px;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        button {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 22px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+        }
+
+        button:disabled {
+            background: #a5b4fc;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
+            background: #60a5fa;
+        }
+
+        input[type="text"] {
+            height: 40px;
+            font-size: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.18s;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            max-width: 60%;
+        }
+
+        #log {
+            background: #f3f4f6;
+            border-radius: 6px;
+            min-height: 120px;
+            padding: 14px;
+            font-family: 'Fira Mono', 'Consolas', monospace;
+            font-size: 0.98rem;
+            color: #334155;
+            box-shadow: 0 1px 4px rgba(60, 72, 88, 0.06);
+            white-space: pre-wrap;
+            margin-top: 10px;
+            width: 100%;
+            max-width: 700px;
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            transition: box-shadow 0.18s;
+            max-height: 500px;
+        }
+
+        #log:empty {
+            min-height: 60px;
+        }
+
+        #log::-webkit-scrollbar {
+            height: 8px;
+            background: #e0e7ff;
+            border-radius: 6px;
+        }
+
+        #log::-webkit-scrollbar-thumb {
+            background: #c7d2fe;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>AppMakers USA Backend Project</h2>
+        <input id="urlInput" type="text" placeholder="Enter URL to shorten">
+        <div class="btn-group">
+            <button id="clearBtn">Clear</button>
+            <button id="sendUrlBtn" disabled>Submit</button>
+        </div>
+        <a href="https://aws.amazon.com/what-is-cloud-computing" style="display:inline-block;">
+            <img src="https://d0.awsstatic.com/logos/powered-by-aws.png" alt="Powered by AWS Cloud Computing"
+                style="height:32px;width:auto; margin: 10px 0;">
+        </a>
+        <pre id="log"></pre>
+    </div>
+    <script>
+        // UI Elements
+        const clearBtn = document.getElementById('clearBtn');
+        const sendUrlBtn = document.getElementById('sendUrlBtn');
+        const urlInput = document.getElementById('urlInput');
+        const logEl = document.getElementById('log');
+
+        // Allow submitting with Enter key
+        urlInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !sendUrlBtn.disabled) {
+                sendUrlBtn.click();
+            }
+        });
+
+        // Log messages to the log element
+        function log(msg) {
+            logEl.textContent += msg + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        log('[WS] Initializing WebSocket connection...');
+
+        // WebSocket setup
+        let ws = new WebSocket('ws://' + location.host);
+        let sessionId = 'user-session-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+
+        ws.onopen = function () {
+            log('[WS] WebSocket connected\n');
+
+            // Send session ID to server
+            ws.send(JSON.stringify({ sessionId }));
+
+            // Enable the send button
+            sendUrlBtn.disabled = false;
+            clearBtn.disabled = false;
+        };
+
+        ws.onmessage = function (event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.shortenedURL) {
+                    log(`[WS] Received shortened URL: ${data.shortenedURL}`);
+
+                    const code = data.shortenedURL.split('/').pop();
+
+                    log(`[WS] Shortened code: ${code}\n`);
+
+                    log('[GET] Retrieving original URL...');
+
+                    fetch(`/${code}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Session-Id': sessionId // Send session ID in header
+                        },
+                    }).then(res => {
+                        if (res.ok) {
+                            res.json().then(json => {
+                                if (json.url) {
+                                    log(`[GET] Original URL: ${json.url}\n`);
+                                } else {
+                                    log('[GET] No URL found in response.');
+                                }
+                            });
+                        } else {
+                            log('[GET] Failed to retrieve original URL.');
+                        }
+                    }).catch((e) => {
+                        log('Network error: ' + e.message);
+                    });
+                }
+            } catch (e) { }
+        };
+
+        ws.onclose = function () {
+            if (ws.readyState === WebSocket.CLOSING) {
+                log('[WS] WebSocket closed. Refresh the page to reconnect.');
+            }
+            sendUrlBtn.disabled = true;
+            clearBtn.disabled = false;
+        };
+
+        ws.onerror = function (e) {
+            log('[WS] WebSocket error: ' + e.message);
+        };
+
+        clearBtn.onclick = function () {
+            urlInput.value = '';
+            logEl.textContent = '';
+            log('[UI] Cleared input and log.\n');
+        };
+
+        sendUrlBtn.onclick = function () {
+            const url = urlInput.value.trim();
+
+            // Check if URL is empty
+            if (!url || url.length === 0) {
+                log('\n[UI] Please enter a valid URL.\n');
+                urlInput.focus();
+                return;
+            }
+
+            log('[POST] Sending URL to server: ' + url + '\n');
+
+            fetch('/url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Session-Id': sessionId // Send session ID in header
+                },
+                body: JSON.stringify({ url })
+            }).then(res => {
+                if (res.ok) {
+                    urlInput.value = '';
+                } else {
+                    log('[POST] Failed to send URL.');
+                }
+            }).catch((e) => {
+                log('[POST] Network error: ' + e.message);
+            });
+        };
+    </script>
+</body>
+
+</html>
