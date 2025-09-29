@@ -47,8 +47,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=deps-production /app/node_modules ./node_modules
 COPY package*.json ./
 COPY src ./src
+COPY public ./public
 
-RUN chown -R appuser:nodejs ./node_modules ./package*.json ./src
+RUN chown -R appuser:nodejs ./node_modules ./package*.json ./src ./public
 
 USER appuser
 
